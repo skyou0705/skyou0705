@@ -3,7 +3,7 @@ import streamlit as st
 # 設定網頁標題與版面
 st.set_page_config(page_title="將軍戰術計算機", page_icon="⚔️", layout="centered")
 
-st.title("⚔️ 戰術狙擊計算機 (ABC 完全體)")
+st.title("⚔️ 戰術狙擊計算機 ")
 
 # --- 第一區：資金與標的 ---
 st.subheader("💰 資金與標的")
