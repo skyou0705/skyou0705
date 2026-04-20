@@ -52,7 +52,8 @@ st.number_input(f"🔄 美金/馬幣 即時匯率 (系統抓取: {live_rate})", 
                 key="exchange_rate", on_change=update_rate, help="已自動抓取國際外匯即時價格，可根據銀行實際換匯成本微調")
 
 # 軍火庫快速選單
-watchlist = ["手動輸入", "TSLL", "MSFU", "METU", "INTC", "PEP", "SOFI", "CPB", "CAG", "GIS", "NVDA", "TSLA", "AAPL", "LUMN"]
+watchlist = ["手動輸入", "TSLL", "MSFU", "METU", "INTC", "PEP", "SOFI", "CPB", "CAG", "GIS", "NVDL", "AMDL", "AAPU", "LUMN", "ROOT", "HIMS", 
+            "KGC"]
 st.selectbox("📋 專屬軍火庫 (可打字搜尋)", watchlist, key="quick_pick", on_change=sync_quick_pick)
 
 col1, col2, col3 = st.columns(3)
