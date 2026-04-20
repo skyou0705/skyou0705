@@ -3,13 +3,26 @@ import yfinance as yf
 import datetime
 
 # 設定網頁標題與版面
-st.set_page_config(page_title="將軍戰術計算機", page_icon="⚔️", layout="centered")
+st.set_page_config(page_title="戰術計算機", page_icon="⚔️", layout="centered")
+
+# --- 🌟 新增：外匯雷達 (自動抓取即時匯率) ---
+@st.cache_data(ttl=3600)  # 快取 1 小時，避免頻繁讀取拖慢速度
+def get_live_exchange_rate():
+    try:
+        # USDMYR=X 是美金對馬幣的外匯代號
+        rate = yf.Ticker("USDMYR=X").fast_info.last_price
+        return round(rate, 4) # 取小數點後四位
+    except Exception:
+        return 4 # 如果網路斷線，使用備用預設值
+
+# 啟動時獲取真實匯率
+live_rate = get_live_exchange_rate()
 
 # --- 匯率與預算雙向連動邏輯 (Session State) ---
 if 'usd_budget' not in st.session_state:
-    st.session_state.usd_budget = 1316.0
+    st.session_state.usd_budget = 0.0
 if 'exchange_rate' not in st.session_state:
-    st.session_state.exchange_rate = 4.75
+    st.session_state.exchange_rate = live_rate  # 改為使用剛剛抓到的真實匯率！
 if 'myr_budget' not in st.session_state:
     st.session_state.myr_budget = st.session_state.usd_budget * st.session_state.exchange_rate
 if 'target_ticker' not in st.session_state:
@@ -29,22 +42,22 @@ def sync_quick_pick():
         st.session_state.target_ticker = st.session_state.quick_pick
 
 st.title("⚔️ 戰術狙擊計算機")
-st.caption("版本：時間戳記 + 雙幣連動防呆版")
+st.caption("版本：雙雷達 (股價 + 實時外匯) 連動版")
 
 # --- 第一區：資金與標的 ---
 st.subheader("💰 資金與標的")
 
-st.number_input("🔄 美金/馬幣 即時匯率 (USD/MYR)", min_value=3.0, max_value=6.0, step=0.01, 
-                key="exchange_rate", on_change=update_rate)
+# 匯率輸入框，預設值已變成真實匯率
+st.number_input(f"🔄 美金/馬幣 即時匯率 (系統抓取: {live_rate})", min_value=3.0, max_value=6.0, step=0.01, 
+                key="exchange_rate", on_change=update_rate, help="已自動抓取國際外匯即時價格，可根據銀行實際換匯成本微調")
 
-# 軍火庫快速選單 (可以打字搜尋)
-watchlist = ["手動輸入", "TSLL", "MSFU", "METU", "INTC", "PEP", "WMT", "CPB", "CAG", "GIS", "NVDA", "TSLA", "AAPL", "SPY"]
+# 軍火庫快速選單
+watchlist = ["手動輸入", "TSLL", "MSFU", "METU", "INTC", "PEP", "SOFI", "CPB", "CAG", "GIS", "NVDA", "TSLA", "AAPL", "LUMN"]
 st.selectbox("📋 專屬軍火庫 (可打字搜尋)", watchlist, key="quick_pick", on_change=sync_quick_pick)
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    # 標的代號輸入框
     ticker = st.text_input("標的代號 (Ticker)", key="target_ticker").upper()
 
 with col2:
@@ -64,7 +77,6 @@ if ticker:
     try:
         stock_info = yf.Ticker(ticker)
         current_price = stock_info.fast_info.last_price
-        # 抓取成功時，記錄當下系統時間
         fetch_time_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     except Exception:
         current_price = 0.00
@@ -74,7 +86,6 @@ with col4:
     buy_price = st.number_input("打算進場的價格 (USD)", min_value=0.01, 
                                 value=float(current_price) if current_price > 0 else 11.42, 
                                 step=0.01)
-    # 加入空白行與報價時間
     st.write("") 
     if fetch_time_str:
         st.caption(f"⏱️ 報價時間: {fetch_time_str}")
@@ -82,10 +93,10 @@ with col4:
 buy_fee = 1.0
 sell_fee = 1.0
 
-# 🌟 致命 Error 修復：確保計算出來的股數絕對不會是負數
+# 確保計算出來的股數絕對不會是負數
 if buy_price > 0:
     raw_qty = (total_budget - buy_fee) // buy_price
-    max_quantity = int(max(0, raw_qty)) # 用 max(0, 數值) 強制托底
+    max_quantity = int(max(0, raw_qty))
 else:
     max_quantity = 0
 
