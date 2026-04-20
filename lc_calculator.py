@@ -1,45 +1,51 @@
 import streamlit as st
 import yfinance as yf
+import datetime
 
 # 設定網頁標題與版面
-st.set_page_config(page_title="戰術計算機", page_icon="⚔️", layout="centered")
+st.set_page_config(page_title="將軍戰術計算機", page_icon="⚔️", layout="centered")
 
 # --- 匯率與預算雙向連動邏輯 (Session State) ---
-# 確保系統記得你的預算和匯率
 if 'usd_budget' not in st.session_state:
     st.session_state.usd_budget = 1316.0
 if 'exchange_rate' not in st.session_state:
     st.session_state.exchange_rate = 4.75
 if 'myr_budget' not in st.session_state:
     st.session_state.myr_budget = st.session_state.usd_budget * st.session_state.exchange_rate
+if 'target_ticker' not in st.session_state:
+    st.session_state.target_ticker = "TSLL"
 
-# 當美金預算改變時，自動算馬幣
 def update_myr():
     st.session_state.myr_budget = st.session_state.usd_budget * st.session_state.exchange_rate
 
-# 當馬幣預算改變時，自動算美金
 def update_usd():
     st.session_state.usd_budget = st.session_state.myr_budget / st.session_state.exchange_rate
 
-# 當匯率改變時，以美金為主更新馬幣
 def update_rate():
     st.session_state.myr_budget = st.session_state.usd_budget * st.session_state.exchange_rate
 
+def sync_quick_pick():
+    if st.session_state.quick_pick != "手動輸入":
+        st.session_state.target_ticker = st.session_state.quick_pick
 
 st.title("⚔️ 戰術狙擊計算機")
-st.caption("版本：自動抓價 + 雙幣匯率連動")
+st.caption("版本：時間戳記 + 雙幣連動防呆版")
 
 # --- 第一區：資金與標的 ---
 st.subheader("💰 資金與標的")
 
-# 1. 匯率設定
 st.number_input("🔄 美金/馬幣 即時匯率 (USD/MYR)", min_value=3.0, max_value=6.0, step=0.01, 
-                key="exchange_rate", on_change=update_rate, help="預設為 4.75，可根據銀行實際匯率微調")
+                key="exchange_rate", on_change=update_rate)
+
+# 軍火庫快速選單 (可以打字搜尋)
+watchlist = ["手動輸入", "TSLL", "MSFU", "METU", "INTC", "PEP", "WMT", "CPB", "CAG", "GIS", "NVDA", "TSLA", "AAPL", "SPY"]
+st.selectbox("📋 專屬軍火庫 (可打字搜尋)", watchlist, key="quick_pick", on_change=sync_quick_pick)
 
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    ticker = st.text_input("標的代號 (Ticker)", value="TSLL").upper()
+    # 標的代號輸入框
+    ticker = st.text_input("標的代號 (Ticker)", key="target_ticker").upper()
 
 with col2:
     st.number_input("投入總預算 (USD)", min_value=0.0, step=10.0, 
@@ -49,15 +55,17 @@ with col3:
     st.number_input("投入總預算 (MYR)", min_value=0.0, step=50.0, 
                     key="myr_budget", on_change=update_usd)
 
-# 統一使用換算後的美金作為運算基礎
 total_budget = st.session_state.usd_budget
 
-# 啟動自動抓價雷達
+# 啟動自動抓價雷達與時間
 current_price = 0.00
+fetch_time_str = ""
 if ticker:
     try:
         stock_info = yf.Ticker(ticker)
         current_price = stock_info.fast_info.last_price
+        # 抓取成功時，記錄當下系統時間
+        fetch_time_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     except Exception:
         current_price = 0.00
 
@@ -65,14 +73,19 @@ col4, col5 = st.columns(2)
 with col4:
     buy_price = st.number_input("打算進場的價格 (USD)", min_value=0.01, 
                                 value=float(current_price) if current_price > 0 else 11.42, 
-                                step=0.01, help="已自動抓取最新市價，可手動微調。")
+                                step=0.01)
+    # 加入空白行與報價時間
+    st.write("") 
+    if fetch_time_str:
+        st.caption(f"⏱️ 報價時間: {fetch_time_str}")
 
 buy_fee = 1.0
 sell_fee = 1.0
 
-# 自動計算最大股數
+# 🌟 致命 Error 修復：確保計算出來的股數絕對不會是負數
 if buy_price > 0:
-    max_quantity = int((total_budget - buy_fee) // buy_price)
+    raw_qty = (total_budget - buy_fee) // buy_price
+    max_quantity = int(max(0, raw_qty)) # 用 max(0, 數值) 強制托底
 else:
     max_quantity = 0
 
@@ -83,6 +96,8 @@ real_capital = (buy_price * quantity) + buy_fee
 
 if quantity > 0:
     st.info(f"**實戰數據：** 投入 **${real_capital:.2f} USD** (約 RM {real_capital * st.session_state.exchange_rate:.2f}) 購買 **{quantity}** 股 {ticker}。 \n\n 剩餘閒置資金: ${total_budget - real_capital:.2f} USD")
+elif total_budget > 0:
+    st.warning("⚠️ 預算不足以購買 1 股並支付手續費。")
 
 st.divider()
 
@@ -99,7 +114,6 @@ st.divider()
 
 # --- 第三區：作戰報表 ---
 if quantity > 0:
-    
     # ================= 獲利 ABC 劇本 =================
     st.markdown(f"### 📈 {ticker} 獲利劇本 (Take Profit)")
     p_col1, p_col2, p_col3 = st.columns(3)
@@ -118,7 +132,6 @@ if quantity > 0:
     price_c = buy_price * (1 + (pct_c / 100))
     profit_c = (price_c * quantity) - real_capital - sell_fee
     p_col3.success(f"**C 方案: 延伸 (+{pct_c:.1f}%)**\n\n目標價: **${price_c:.2f}**\n\n淨賺: **${profit_c:.2f}**\n\n**(約 RM {profit_c * st.session_state.exchange_rate:.0f})**")
-
 
     # ================= 停損 ABC 劇本 =================
     st.markdown(f"### 📉 {ticker} 防禦劇本 (Stop Loss)")
@@ -139,6 +152,3 @@ if quantity > 0:
     sl_price_c = buy_price * (1 - (sl_c / 100))
     sl_loss_c = (sl_price_c * quantity) - real_capital - sell_fee
     s_col3.error(f"**C 方案: 極限 (-{sl_c:.1f}%)**\n\n觸發價: **${sl_price_c:.2f}**\n\n淨虧: **${sl_loss_c:.2f}**\n\n**(約 RM {sl_loss_c * st.session_state.exchange_rate:.0f})**")
-
-else:
-    st.caption("👈 請在上方輸入有效的買入價與預算，以解鎖戰術報表。")
