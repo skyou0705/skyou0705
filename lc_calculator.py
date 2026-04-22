@@ -140,8 +140,8 @@ lang = st.session_state.language
 st.markdown("""
 <style>
     .big-title {
-        font-size: 2.45rem !important;
-        font-weight: 700;
+        font-size: 2.10rem !important;
+        font-weight: 500;
         background: linear-gradient(90deg, #FFD700, #FFAA00);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
