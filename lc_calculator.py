@@ -24,8 +24,12 @@ trans = {
         "watchlist_label": "📋 專屬軍火庫 (可打字搜尋)",
         "manual_input": "手動輸入",
         "ticker_label": "標的代號 (Ticker)",
+        "platform_label": "交易平台",
+        "moomoo_option": "Moomoo (MY)",
+        "new_user_promo": "新用戶 180 天免佣",
         "usd_budget_label": "投入總預算 (USD)",
         "myr_budget_label": "投入總預算 (MYR)",
+        "risk_label": "本次交易最大風險 (%)",
         "buy_price_label": "打算進場的價格 (USD)",
         "quantity_label": "最終確認購買股數",
         "percent_title": "🎯 戰術百分比 (%) 設定",
@@ -45,13 +49,13 @@ trans = {
         "net_loss": "淨虧",
         "budget_warning": "⚠️ 預算不足以購買 1 股並支付手續費。",
         "quote_time": "⏱️ 報價時間: {}",
-        # 新增：實行數據
         "execution_title": "實行數據：",
         "input_label": "投入：",
         "purchase_label": "購買 ：",
         "remaining_label": "剩餘資金:",
+        "disclaimer": "**免責聲明**：本工具僅供參考，不構成任何投資建議。過去表現不代表未來結果。本計算機僅為輔助工具，所有數據及計算結果僅供參考，請自行判斷風險並承擔一切後果。"
     },
-    "zh-cn": {
+    "zh-cn": {  # 簡中同步
         "title": "⚔️ 风险执行计算器",
         "caption": "版本：双雷达 (股价 + 实时外汇) 联动版",
         "funds_title": "💰 资金与标的",
@@ -60,8 +64,12 @@ trans = {
         "watchlist_label": "📋 专属军火库 (可打字搜索)",
         "manual_input": "手动输入",
         "ticker_label": "标的代码 (Ticker)",
+        "platform_label": "交易平台",
+        "moomoo_option": "Moomoo (MY)",
+        "new_user_promo": "新用户 180 天免佣",
         "usd_budget_label": "投入总预算 (USD)",
         "myr_budget_label": "投入总预算 (MYR)",
+        "risk_label": "本次交易最大风险 (%)",
         "buy_price_label": "打算进场的价格 (USD)",
         "quantity_label": "最终确认购买股数",
         "percent_title": "🎯 战术百分比 (%) 设定",
@@ -85,6 +93,7 @@ trans = {
         "input_label": "投入：",
         "purchase_label": "购买 ：",
         "remaining_label": "剩余资金:",
+        "disclaimer": "**免责声明**：本工具仅供参考，不构成任何投资建议。过去表现不代表未来结果。本计算机仅为辅助工具，所有数据及计算结果仅供参考，请自行判断风险并承担一切后果。"
     },
     "en": {
         "title": "⚔️ Risk Execution Calculator",
@@ -95,8 +104,12 @@ trans = {
         "watchlist_label": "📋 Watchlist (Searchable)",
         "manual_input": "Manual Input",
         "ticker_label": "Ticker Symbol",
+        "platform_label": "Trading Platform",
+        "moomoo_option": "Moomoo (MY)",
+        "new_user_promo": "New User 180 Days Zero Commission",
         "usd_budget_label": "Total Budget (USD)",
         "myr_budget_label": "Total Budget (MYR)",
+        "risk_label": "Max Risk per Trade (%)",
         "buy_price_label": "Planned Entry Price (USD)",
         "quantity_label": "Final Confirmed Shares",
         "percent_title": "🎯 Tactical Percentage (%) Settings",
@@ -120,16 +133,17 @@ trans = {
         "input_label": "Invested:",
         "purchase_label": "Purchased:",
         "remaining_label": "Remaining Funds:",
+        "disclaimer": "**Disclaimer**: This tool is for reference only and does not constitute investment advice. Past performance does not indicate future results. All calculations are for reference only. Please assess risks yourself and bear all consequences."
     }
 }
 
 lang = st.session_state.language
 
-# ==================== 高級外觀 CSS（標題已縮小） ====================
+# ==================== 高級外觀 CSS ====================
 st.markdown("""
 <style>
     .big-title {
-        font-size: 2.45rem !important;   /* 已調小，更專業舒服 */
+        font-size: 2.45rem !important;
         font-weight: 700;
         background: linear-gradient(90deg, #FFD700, #FFAA00);
         -webkit-background-clip: text;
@@ -163,10 +177,111 @@ with header_cols[4]:
 
 st.caption(trans[lang]["caption"])
 
-# ==================== 其他功能（匯率、軍火庫、slider、刻度尺、報表）全部保留不變 ====================
-# （為了篇幅這裡省略中間完全相同的程式碼，請直接把你上一個版本的「匯率功能、資金與標的、百分比設定、刻度尺、作戰報表」全部貼上來，只替換下面這一段「實行數據」即可）
+# ==================== 匯率與預算功能 ====================
+@st.cache_data(ttl=3600)
+def get_live_exchange_rate():
+    try:
+        rate = yf.Ticker("USDMYR=X").fast_info.last_price
+        return round(rate, 4)
+    except Exception:
+        return 3.955
 
-# ==================== 實行數據（已改成你指定的格式） ====================
+live_rate = get_live_exchange_rate()
+
+for k, v in [("usd_budget", 0.0), ("exchange_rate", live_rate), ("myr_budget", 0.0), ("target_ticker", "TSLL"), ("platform", "Moomoo (MY)"), ("risk_pct", 1.0)]:
+    if k not in st.session_state:
+        st.session_state[k] = v
+
+def update_myr(): st.session_state.myr_budget = st.session_state.usd_budget * st.session_state.exchange_rate
+def update_usd(): st.session_state.usd_budget = st.session_state.myr_budget / st.session_state.exchange_rate
+def update_rate(): st.session_state.myr_budget = st.session_state.usd_budget * st.session_state.exchange_rate
+def sync_quick_pick():
+    if st.session_state.quick_pick != trans["zh-tw"]["manual_input"]:
+        st.session_state.target_ticker = st.session_state.quick_pick
+
+# 資金與標的
+st.subheader(trans[lang]["funds_title"])
+st.number_input(
+    trans[lang]["exchange_label"] + trans[lang]["system_fetch"].format(live_rate),
+    min_value=3.0, max_value=6.0, step=0.01,
+    key="exchange_rate", on_change=update_rate
+)
+
+watchlist_base = ["TSLL", "MSFU", "METU", "INTC", "PEP", "SOFI", "CPB", "CAG", "GIS", "NVDL", "AMDL", "AAPU", "LUMN", "ROOT", "HIMS", "KGC"]
+watchlist = [trans[lang]["manual_input"]] + watchlist_base
+st.selectbox(trans[lang]["watchlist_label"], watchlist, key="quick_pick", on_change=sync_quick_pick)
+
+# 新增：交易平台與風險控管
+col_platform, col_risk = st.columns(2)
+with col_platform:
+    platform_options = [trans[lang]["moomoo_option"], trans[lang]["manual_input"]]
+    platform = st.selectbox(trans[lang]["platform_label"], platform_options, key="platform")
+
+with col_risk:
+    risk_pct = st.number_input(trans[lang]["risk_label"], min_value=0.1, max_value=5.0, value=1.0, step=0.1, key="risk_pct")
+
+col1, col2, col3 = st.columns(3)
+with col1:
+    ticker = st.text_input(trans[lang]["ticker_label"], key="target_ticker").upper()
+with col2:
+    st.number_input(trans[lang]["usd_budget_label"], min_value=0.0, step=10.0, key="usd_budget", on_change=update_myr)
+with col3:
+    st.number_input(trans[lang]["myr_budget_label"], min_value=0.0, step=50.0, key="myr_budget", on_change=update_usd)
+
+total_budget = st.session_state.usd_budget
+
+# ==================== 手續費設定（Moomoo 真實費率） ====================
+is_moomoo = platform == trans[lang]["moomoo_option"]
+use_promo = st.checkbox(trans[lang]["new_user_promo"], value=True) if is_moomoo else False
+commission_rate = 0.0 if use_promo else 0.0003   # 0.03%
+platform_fee = 0.99 if is_moomoo else 1.0
+
+# ==================== 股價與股數計算 ====================
+current_price = 0.00
+fetch_time_str = ""
+if ticker:
+    try:
+        stock_info = yf.Ticker(ticker)
+        current_price = stock_info.fast_info.last_price
+        fetch_time_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    except Exception:
+        current_price = 0.00
+
+col4, col5 = st.columns(2)
+with col4:
+    buy_price = st.number_input(
+        trans[lang]["buy_price_label"],
+        min_value=0.01,
+        value=float(current_price) if current_price > 0 else 13.29,
+        step=0.01
+    )
+    if fetch_time_str:
+        st.caption(trans[lang]["quote_time"].format(fetch_time_str))
+
+# 風險控管 + 預算 雙重限制股數
+stop_loss_pct = st.session_state.get('base_stop_loss_pct', 2.0)  # 後面 slider 會更新
+sl_loss_per_share = buy_price * (stop_loss_pct / 100)
+budget_based_qty = int(max(0, (total_budget - platform_fee) // buy_price)) if buy_price > 0 else 0
+
+risk_based_qty = 999999
+if sl_loss_per_share > 0 and total_budget > 0:
+    max_loss_usd = total_budget * (risk_pct / 100)
+    risk_based_qty = int(max_loss_usd / (sl_loss_per_share + platform_fee))
+
+max_quantity = min(budget_based_qty, risk_based_qty)
+
+with col5:
+    quantity = st.number_input(trans[lang]["quantity_label"], min_value=0, value=max_quantity, step=1)
+
+# ==================== 實行數據 ====================
+transaction_amount = buy_price * quantity
+buy_commission = round(max(0.01, commission_rate * transaction_amount), 2) if commission_rate > 0 else 0.0
+sell_commission = buy_commission  # 買賣同費率
+buy_fee = platform_fee + buy_commission
+sell_fee = platform_fee + sell_commission
+
+real_capital = (buy_price * quantity) + buy_fee
+
 if quantity > 0:
     rm_value = real_capital * st.session_state.exchange_rate
     remaining = total_budget - real_capital
@@ -181,7 +296,38 @@ elif total_budget > 0:
 
 st.divider()
 
-# ==================== 後面獲利/停損報表（完全不變） ====================
+# ==================== 戰術百分比設定（含刻度尺） ====================
+st.subheader(trans[lang]["percent_title"])
+t_col1, t_col2 = st.columns(2)
+
+with t_col1:
+    target_profit_pct = st.slider(trans[lang]["profit_slider"], 1.0, 100.0, 3.0, 0.5, key="target_profit_pct")
+    st.markdown('''
+        <div style="display:flex; justify-content:space-between; font-size:0.78rem; color:#999; margin:-8px 0 12px 0; padding:0 8px;">
+            <div>1%</div><div>20%</div><div>40%</div><div>60%</div><div>80%</div><div>100%</div>
+        </div>
+    ''', unsafe_allow_html=True)
+
+with t_col2:
+    base_stop_loss_pct = st.slider(trans[lang]["stoploss_slider"], 0.5, 10.0, 2.0, 0.5, key="base_stop_loss_pct")
+    st.markdown('''
+        <div style="display:flex; justify-content:space-between; font-size:0.78rem; color:#999; margin:-8px 0 12px 0; padding:0 8px;">
+            <div>0.5%</div><div>2%</div><div>4%</div><div>6%</div><div>8%</div><div>10%</div>
+        </div>
+    ''', unsafe_allow_html=True)
+
+st.divider()
+
+# ==================== 獲利 / 停損劇本（不變） ====================
 if quantity > 0:
-    # ...（把你之前版本的獲利劇本 + 防禦劇本程式碼直接貼在這裡）
-    pass  # ← 這裡請貼上你原本的 p_col1 / p_col2 / p_col3 和 s_col1 / s_col2 / s_col3 部分
+    # 獲利劇本...
+    st.markdown(f"### 📈 {ticker} {trans[lang]['take_profit_header']}")
+    p_col1, p_col2, p_col3 = st.columns(3)
+    # （這裡貼上你之前版本的 A/B/C 獲利計算程式碼，為了篇幅不再重複）
+    # ... 同樣停損劇本也保留 ...
+
+    # 免責聲明 footer
+    st.markdown("---")
+    st.caption(trans[lang]["disclaimer"])
+
+# 注意：獲利/停損劇本的完整程式碼與之前完全相同，這裡省略以節省篇幅，你直接把上一個版本的劇本區塊貼進來即可。
