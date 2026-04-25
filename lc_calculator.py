@@ -52,7 +52,7 @@ trans = {
         "execution_title": "實行數據：",
         "disclaimer": "**免責聲明**：本工具僅供參考，不構成任何投資建議。過去表現不代表未來結果。本計算機僅為輔助工具，所有數據及計算結果僅供參考，請自行判斷風險並承擔一切後果。"
     },
-    "zh-cn": {
+    "zh-cn": {  # 簡中內容與之前相同
         "title": "⚔️ 风险执行计算器",
         "caption": "版本：双雷达 (股价 + 实时外汇) 联动版",
         "funds_title": "💰 资金与标的",
@@ -89,7 +89,7 @@ trans = {
         "execution_title": "实行数据：",
         "disclaimer": "**免责声明**：本工具仅供参考，不构成任何投资建议。过去表现不代表未来结果。本计算机仅为辅助工具，所有数据及计算结果仅供参考，请自行判断风险并承担一切后果。"
     },
-    "en": {
+    "en": {  # 英文內容與之前相同
         "title": "⚔️ Risk Execution Calculator",
         "caption": "Version: Dual Radar (Stock + Real-time FX) Linked",
         "funds_title": "💰 Funds & Target",
@@ -130,7 +130,7 @@ trans = {
 
 lang = st.session_state.language
 
-# ==================== CSS (含垂直刻度線 + 音量條風格) ====================
+# ==================== CSS（已修正垂直刻度線位置） ====================
 st.markdown("""
 <style>
     .big-title {
@@ -143,22 +143,22 @@ st.markdown("""
         margin-bottom: 0.3rem;
         letter-spacing: -0.5px;
     }
-    .execution-data { 
-        font-size: 0.98rem !important; 
-        line-height: 1.75; 
-    }
+    .execution-data { font-size: 0.98rem !important; line-height: 1.75; }
 
-    /* Slider 垂直刻度線 (尺的效果) */
+    /* Slider 整體調整 */
     div[data-baseweb="slider"] {
         padding-top: 25px !important;
         padding-bottom: 10px !important;
     }
+    /* 軌道底色 */
     div[data-baseweb="slider"] > div > div > div:nth-child(2) {
         background: #222 !important;
         height: 10px !important;
         border-radius: 9999px !important;
         position: relative;
+        overflow: hidden;
     }
+    /* 垂直刻度線 - 強制放在軌道背景層 */
     div[data-baseweb="slider"] > div > div > div:nth-child(2)::before {
         content: '';
         position: absolute;
@@ -173,21 +173,24 @@ st.markdown("""
             rgba(255,255,255,0.35) 9.09%,
             rgba(255,255,255,0.35) 10%
         );
+        z-index: 1;
         pointer-events: none;
-        z-index: 2;
     }
 
-    /* 獲利 slider - 綠色音量條 */
+    /* 獲利 slider - 綠色填充 */
     div[data-baseweb="slider"]:nth-of-type(1) > div > div > div:first-child {
         background: linear-gradient(90deg, #00ff9d, #00cc7a) !important;
         box-shadow: 0 0 15px #00ff9d !important;
+        z-index: 2;
     }
-    /* 停損 slider - 紅色音量條 */
+    /* 停損 slider - 紅色填充 */
     div[data-baseweb="slider"]:nth-of-type(2) > div > div > div:first-child {
         background: linear-gradient(90deg, #ff4d4d, #e60000) !important;
         box-shadow: 0 0 15px #ff4d4d !important;
+        z-index: 2;
     }
 
+    /* 滑塊 */
     div[data-baseweb="slider"] div[role="slider"] {
         background: #ffffff !important;
         border: 3px solid #111 !important;
@@ -230,7 +233,8 @@ def get_live_exchange_rate():
 
 live_rate = get_live_exchange_rate()
 
-for k, v in [("usd_budget", 0.0), ("exchange_rate", live_rate), ("myr_budget", 0.0), ("target_ticker", "TSLL")]:
+# Ticker 預設改成空白
+for k, v in [("usd_budget", 0.0), ("exchange_rate", live_rate), ("myr_budget", 0.0), ("target_ticker", "")]:
     if k not in st.session_state:
         st.session_state[k] = v
 
@@ -271,6 +275,7 @@ with col3:
 
 total_budget = st.session_state.usd_budget
 
+# 股價抓取
 current_price = 0.00
 fetch_time_str = ""
 if ticker:
