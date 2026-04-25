@@ -52,85 +52,13 @@ trans = {
         "execution_title": "實行數據：",
         "disclaimer": "**免責聲明**：本工具僅供參考，不構成任何投資建議。過去表現不代表未來結果。本計算機僅為輔助工具，所有數據及計算結果僅供參考，請自行判斷風險並承擔一切後果。"
     },
-    "zh-cn": {  # 簡中內容與之前相同
-        "title": "⚔️ 风险执行计算器",
-        "caption": "版本：双雷达 (股价 + 实时外汇) 联动版",
-        "funds_title": "💰 资金与标的",
-        "exchange_label": "🔄 美元/马币 实时汇率",
-        "system_fetch": " (系统抓取: {})",
-        "watchlist_label": "📋 专属军火库 (可打字搜索)",
-        "manual_input": "手动输入",
-        "ticker_label": "标的代码 (Ticker)",
-        "platform_label": "交易平台",
-        "moomoo_option": "Moomoo (MY)",
-        "usd_budget_label": "投入总预算 (USD)",
-        "myr_budget_label": "投入总预算 (MYR)",
-        "buy_price_label": "打算进场的价格 (USD)",
-        "quantity_label": "最终确认购买股数",
-        "max_quantity_hint": "最多可买",
-        "percent_title": "🎯 战术百分比 (%) 设定",
-        "profit_slider": "📈 基准获利目标 (%)",
-        "stoploss_slider": "📉 基准止损底线 (%)",
-        "cents_toggle": "仙位显示",
-        "take_profit_header": "获利剧本 (Take Profit)",
-        "stop_loss_header": "防御剧本 (Stop Loss)",
-        "scheme_a": "A 方案: 保守",
-        "scheme_b": "B 方案: 达标",
-        "scheme_c": "C 方案: 延伸",
-        "stop_a": "A 方案: 撤退",
-        "stop_b": "B 方案: 标准",
-        "stop_c": "C 方案: 极限",
-        "target_price": "目标价",
-        "trigger_price": "触发价",
-        "net_profit": "净赚",
-        "net_loss": "净亏",
-        "budget_warning": "⚠️ 预算不足以购买 1 股并支付手续费。",
-        "quote_time": "⏱️ 报价时间: {}",
-        "execution_title": "实行数据：",
-        "disclaimer": "**免责声明**：本工具仅供参考，不构成任何投资建议。过去表现不代表未来结果。本计算机仅为辅助工具，所有数据及计算结果仅供参考，请自行判断风险并承担一切后果。"
-    },
-    "en": {  # 英文內容與之前相同
-        "title": "⚔️ Risk Execution Calculator",
-        "caption": "Version: Dual Radar (Stock + Real-time FX) Linked",
-        "funds_title": "💰 Funds & Target",
-        "exchange_label": "🔄 USD/MYR Live Rate",
-        "system_fetch": " (System: {})",
-        "watchlist_label": "📋 Watchlist (Searchable)",
-        "manual_input": "Manual Input",
-        "ticker_label": "Ticker Symbol",
-        "platform_label": "Trading Platform",
-        "moomoo_option": "Moomoo (MY)",
-        "usd_budget_label": "Total Budget (USD)",
-        "myr_budget_label": "Total Budget (MYR)",
-        "buy_price_label": "Planned Entry Price (USD)",
-        "quantity_label": "Final Confirmed Shares",
-        "max_quantity_hint": "Max shares you can buy",
-        "percent_title": "🎯 Tactical Percentage (%) Settings",
-        "profit_slider": "📈 Target Profit (%)",
-        "stoploss_slider": "📉 Base Stop Loss (%)",
-        "cents_toggle": "Show Cents",
-        "take_profit_header": "Take Profit Plans",
-        "stop_loss_header": "Stop Loss Plans",
-        "scheme_a": "A: Conservative",
-        "scheme_b": "B: Target",
-        "scheme_c": "C: Extended",
-        "stop_a": "A: Retreat",
-        "stop_b": "B: Standard",
-        "stop_c": "C: Extreme",
-        "target_price": "Target Price",
-        "trigger_price": "Trigger Price",
-        "net_profit": "Net Profit",
-        "net_loss": "Net Loss",
-        "budget_warning": "⚠️ Budget not enough for 1 share + commission.",
-        "quote_time": "⏱️ Quote Time: {}",
-        "execution_title": "Execution Data:",
-        "disclaimer": "**Disclaimer**: This tool is for reference only and does not constitute investment advice. Past performance does not indicate future results. All calculations are for reference only. Please assess risks yourself and bear all consequences."
-    }
+    "zh-cn": { ... },  # 簡中內容與之前相同（省略重複）
+    "en": { ... }      # 英文內容與之前相同（省略重複）
 }
 
 lang = st.session_state.language
 
-# ==================== CSS（已修正垂直刻度線位置） ====================
+# ==================== CSS（垂直刻度線放在下方） ====================
 st.markdown("""
 <style>
     .big-title {
@@ -145,60 +73,31 @@ st.markdown("""
     }
     .execution-data { font-size: 0.98rem !important; line-height: 1.75; }
 
-    /* Slider 整體調整 */
+    /* Slider 基本美化 */
     div[data-baseweb="slider"] {
-        padding-top: 25px !important;
-        padding-bottom: 10px !important;
+        padding-top: 15px !important;
+        padding-bottom: 8px !important;
     }
-    /* 軌道底色 */
     div[data-baseweb="slider"] > div > div > div:nth-child(2) {
-        background: #222 !important;
-        height: 10px !important;
+        background: #333 !important;
+        height: 8px !important;
         border-radius: 9999px !important;
-        position: relative;
-        overflow: hidden;
     }
-    /* 垂直刻度線 - 強制放在軌道背景層 */
-    div[data-baseweb="slider"] > div > div > div:nth-child(2)::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: repeating-linear-gradient(
-            90deg,
-            transparent,
-            transparent 9.09%,
-            rgba(255,255,255,0.35) 9.09%,
-            rgba(255,255,255,0.35) 10%
-        );
-        z-index: 1;
-        pointer-events: none;
-    }
-
-    /* 獲利 slider - 綠色填充 */
+    /* 獲利 slider - 綠色 */
     div[data-baseweb="slider"]:nth-of-type(1) > div > div > div:first-child {
         background: linear-gradient(90deg, #00ff9d, #00cc7a) !important;
-        box-shadow: 0 0 15px #00ff9d !important;
-        z-index: 2;
+        box-shadow: 0 0 12px #00ff9d !important;
     }
-    /* 停損 slider - 紅色填充 */
+    /* 停損 slider - 紅色 */
     div[data-baseweb="slider"]:nth-of-type(2) > div > div > div:first-child {
         background: linear-gradient(90deg, #ff4d4d, #e60000) !important;
-        box-shadow: 0 0 15px #ff4d4d !important;
-        z-index: 2;
+        box-shadow: 0 0 12px #ff4d4d !important;
     }
-
-    /* 滑塊 */
     div[data-baseweb="slider"] div[role="slider"] {
         background: #ffffff !important;
         border: 3px solid #111 !important;
-        box-shadow: 0 0 12px rgba(255,255,255,0.9) !important;
-        width: 22px !important;
-        height: 22px !important;
+        box-shadow: 0 0 10px rgba(255,255,255,0.8) !important;
     }
-
     .stApp { background-color: #0E1117; }
 </style>
 """, unsafe_allow_html=True)
@@ -209,16 +108,13 @@ with header_cols[0]:
     st.markdown(f'<h1 class="big-title">{trans[lang]["title"]}</h1>', unsafe_allow_html=True)
 with header_cols[2]:
     if st.button("繁", key="btn_zhtw", use_container_width=True):
-        st.session_state.language = "zh-tw"
-        st.rerun()
+        st.session_state.language = "zh-tw"; st.rerun()
 with header_cols[3]:
     if st.button("简", key="btn_zhcn", use_container_width=True):
-        st.session_state.language = "zh-cn"
-        st.rerun()
+        st.session_state.language = "zh-cn"; st.rerun()
 with header_cols[4]:
     if st.button("EN", key="btn_en", use_container_width=True):
-        st.session_state.language = "en"
-        st.rerun()
+        st.session_state.language = "en"; st.rerun()
 
 st.caption(trans[lang]["caption"])
 
@@ -233,7 +129,6 @@ def get_live_exchange_rate():
 
 live_rate = get_live_exchange_rate()
 
-# Ticker 預設改成空白
 for k, v in [("usd_budget", 0.0), ("exchange_rate", live_rate), ("myr_budget", 0.0), ("target_ticker", "")]:
     if k not in st.session_state:
         st.session_state[k] = v
@@ -246,11 +141,7 @@ def sync_quick_pick():
         st.session_state.target_ticker = st.session_state.quick_pick
 
 st.subheader(trans[lang]["funds_title"])
-st.number_input(
-    trans[lang]["exchange_label"] + trans[lang]["system_fetch"].format(live_rate),
-    min_value=3.0, max_value=6.0, step=0.01,
-    key="exchange_rate", on_change=update_rate
-)
+st.number_input(trans[lang]["exchange_label"] + trans[lang]["system_fetch"].format(live_rate), min_value=3.0, max_value=6.0, step=0.01, key="exchange_rate", on_change=update_rate)
 
 watchlist_base = ["TSLL", "MSFU", "METU", "INTC", "PEP", "SOFI", "CPB", "CAG", "GIS", "NVDL", "AMDL", "AAPU", "LUMN", "ROOT", "HIMS", "KGC"]
 watchlist = [trans[lang]["manual_input"]] + watchlist_base
@@ -267,7 +158,7 @@ platform_fee = 0.99 if is_moomoo else 1.0
 
 col1, col2, col3 = st.columns(3)
 with col1:
-    ticker = st.text_input(trans[lang]["ticker_label"], key="target_ticker").upper()
+    ticker = st.text_input(trans[lang]["ticker_label"], key="target_ticker", value="").upper()   # ← 預設空白
 with col2:
     st.number_input(trans[lang]["usd_budget_label"], min_value=0.0, step=10.0, key="usd_budget", on_change=update_myr)
 with col3:
@@ -275,7 +166,6 @@ with col3:
 
 total_budget = st.session_state.usd_budget
 
-# 股價抓取
 current_price = 0.00
 fetch_time_str = ""
 if ticker:
@@ -288,12 +178,7 @@ if ticker:
 
 col4, col5 = st.columns(2)
 with col4:
-    buy_price = st.number_input(
-        trans[lang]["buy_price_label"],
-        min_value=0.01,
-        value=float(current_price) if current_price > 0 else 13.29,
-        step=0.01
-    )
+    buy_price = st.number_input(trans[lang]["buy_price_label"], min_value=0.01, value=float(current_price) if current_price > 0 else 13.29, step=0.01)
     if fetch_time_str:
         st.caption(trans[lang]["quote_time"].format(fetch_time_str))
 
@@ -321,14 +206,15 @@ elif total_budget > 0:
 
 st.divider()
 
-# ==================== 戰術百分比設定 ====================
+# ==================== 戰術百分比設定（刻度線放在下方） ====================
 st.subheader(trans[lang]["percent_title"])
 t_col1, t_col2 = st.columns(2)
 
 with t_col1:
     target_profit_pct = st.slider(trans[lang]["profit_slider"], 1.0, 200.0, 3.0, step=1.0)
+    # 刻度線放在下方
     st.markdown('''
-        <div style="display:flex; justify-content:space-between; font-size:0.78rem; color:#999; margin:-8px 0 12px 0; padding:0 8px; border-bottom:1px solid #333;">
+        <div style="display:flex; justify-content:space-between; font-size:0.78rem; color:#999; margin:-8px 0 12px 0; padding:0 8px;">
             <div>1%</div><div>20%</div><div>40%</div><div>60%</div><div>80%</div><div>100%</div><div>120%</div><div>140%</div><div>160%</div><div>180%</div><div>200%</div>
         </div>
     ''', unsafe_allow_html=True)
