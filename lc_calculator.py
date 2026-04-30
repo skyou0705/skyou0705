@@ -215,10 +215,10 @@ col4, col5 = st.columns(2)
 with col4:
     buy_price = st.number_input(
         trans[lang]["buy_price_label"],
-        min_value=0.0001,
-        value=0.0,                    # ← 預設改為 0
-        step=0.0001,                  # ← 支援仙位
-        format="%.4f"                 # ← 顯示到小數點後4位
+        min_value=0.0,           # ← 改成 0.0
+        value=0.0,               # ← 預設改成 0
+        step=0.0001,             # ← 支援仙位
+        format="%.4f"
     )
     if fetch_time_str:
         st.caption(trans[lang]["quote_time"].format(fetch_time_str))
