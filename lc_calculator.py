@@ -17,7 +17,7 @@ if 'language' not in st.session_state:
 trans = {
     "zh-tw": {
         "title": "⚔️ 風險執行計算器",
-        "caption": "版本：雙雷達 (股價 + 實時外匯) 連動版",
+        "caption": "版本：雙雷達 (股價 + 實時外匯) 連動版 | 包含 Moomoo 雙向手續費核算",
         "funds_title": "💰 資金與標的",
         "exchange_label": "🔄 美金/馬幣 即時匯率",
         "system_fetch": " (系統抓取: {})",
@@ -44,16 +44,16 @@ trans = {
         "stop_c": "C 方案: 極限",
         "target_price": "目標價",
         "trigger_price": "觸發價",
-        "net_profit": "淨賺",
-        "net_loss": "淨虧",
+        "net_profit": "實際淨賺",
+        "net_loss": "實際淨虧",
         "budget_warning": "⚠️ 預算不足以購買 1 股並支付手續費。",
         "quote_time": "⏱️ 報價時間: {}",
         "execution_title": "實行數據：",
-        "disclaimer": "**免責聲明**：本工具僅供參考，不構成任何投資建議。過去表現不代表未來結果。本計算機僅為輔助工具，所有數據及計算結果僅供參考，請自行判斷風險並承擔一切後果。"
+        "disclaimer": "**免責聲明**：本工具僅供參考，淨利/虧損已預扣買賣雙向預估手續費。"
     },
     "zh-cn": {
         "title": "⚔️ 风险执行计算器",
-        "caption": "版本：双雷达 (股价 + 实时外汇) 联动版",
+        "caption": "版本：双雷达 (股价 + 实时外汇) 联动版 | 包含 Moomoo 双向手续费核算",
         "funds_title": "💰 资金与标的",
         "exchange_label": "🔄 美元/马币 实时汇率",
         "system_fetch": " (系统抓取: {})",
@@ -80,16 +80,16 @@ trans = {
         "stop_c": "C 方案: 极限",
         "target_price": "目标价",
         "trigger_price": "触发价",
-        "net_profit": "净赚",
-        "net_loss": "净亏",
+        "net_profit": "实际净赚",
+        "net_loss": "实际净亏",
         "budget_warning": "⚠️ 预算不足以购买 1 股并支付手续费。",
         "quote_time": "⏱️ 报价时间: {}",
         "execution_title": "实行数据：",
-        "disclaimer": "**免责声明**：本工具仅供参考，不构成任何投资建议。过去表现不代表未来结果。本计算机仅为辅助工具，所有数据及计算结果仅供参考，请自行判断风险并承担一切后果。"
+        "disclaimer": "**免责声明**：本工具仅供参考，净利/亏损已预扣买卖双向预估手续费。"
     },
     "en": {
         "title": "⚔️ Risk Execution Calculator",
-        "caption": "Version: Dual Radar (Stock + Real-time FX) Linked",
+        "caption": "Version: Dual Radar Linked | Incl. Moomoo 2-Way Fees",
         "funds_title": "💰 Funds & Target",
         "exchange_label": "🔄 USD/MYR Live Rate",
         "system_fetch": " (System: {})",
@@ -121,17 +121,18 @@ trans = {
         "budget_warning": "⚠️ Budget not enough for 1 share + commission.",
         "quote_time": "⏱️ Quote Time: {}",
         "execution_title": "Execution Data:",
-        "disclaimer": "**Disclaimer**: This tool is for reference only and does not constitute investment advice. Past performance does not indicate future results. All calculations are for reference only. Please assess risks yourself and bear all consequences."
+        "disclaimer": "**Disclaimer**: For reference only. P/L includes 2-way estimated fees."
     }
 }
 
 lang = st.session_state.language
 
-# ==================== CSS ====================
+# ==================== CSS (修復標題黃色與字體大小) ====================
 st.markdown("""
 <style>
-    .big-title { font-size: 2.45rem !important; font-weight: 700; background: linear-gradient(90deg, #FFD700, #FFAA00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-align: center; margin-bottom: 0.3rem; letter-spacing: -0.5px; }
-    .execution-data { font-size: 0.98rem !important; line-height: 1.75; }
+    /* 移除過度刺眼的漸層黃色，縮小字體，改為機構冷灰白，僅保留簡潔感 */
+    .big-title { font-size: 1.8rem !important; font-weight: 600; color: #E2E8F0; text-align: center; margin-bottom: 0.3rem; letter-spacing: 1px; }
+    .execution-data { font-size: 1.05rem !important; line-height: 1.8; background-color: #1E2127; padding: 15px; border-radius: 8px; border-left: 4px solid #FFD700; margin-top: 10px;}
     .stApp { background-color: #0E1117; }
 </style>
 """, unsafe_allow_html=True)
@@ -187,8 +188,6 @@ with col_platform:
     platform = st.selectbox(trans[lang]["platform_label"], platform_options, key="platform")
 
 is_moomoo = platform == trans[lang]["moomoo_option"]
-commission_rate = 0.0003 if is_moomoo else 0.0
-platform_fee = 0.99 if is_moomoo else 1.0
 
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -199,6 +198,17 @@ with col3:
     st.number_input(trans[lang]["myr_budget_label"], min_value=0.0, step=50.0, key="myr_budget", on_change=update_usd)
 
 total_budget = st.session_state.usd_budget
+
+# ==================== 手續費動態核算模組 (Fee Calculator) ====================
+def calculate_estimated_fee(price, qty, is_moo):
+    if qty <= 0 or price <= 0: return 0.0
+    if is_moo:
+        # Moomoo: 平台費($0.99) + 結算費($0.003 * 股數) + 佣金(約0.0003*金額，有些帳戶免收但預留容錯)
+        platform_f = 0.99
+        settlement_f = 0.003 * qty
+        commission_f = 0.0003 * price * qty
+        return platform_f + settlement_f + commission_f
+    return 1.0 # 手動平台的預設摩擦成本
 
 # ==================== 股價抓取 ====================
 current_price = 0.00
@@ -215,22 +225,32 @@ col4, col5 = st.columns(2)
 with col4:
     buy_price = st.number_input(
         trans[lang]["buy_price_label"],
-        min_value=0.0,           # ← 改成 0.0
-        value=0.0,               # ← 預設改成 0
-        step=0.0001,             # ← 支援仙位
+        min_value=0.0,
+        value=0.0,
+        step=0.0001,
         format="%.4f"
     )
     if fetch_time_str:
         st.caption(trans[lang]["quote_time"].format(fetch_time_str))
 
-# ==================== 股數 ====================
-max_quantity = int(max(0, (total_budget - platform_fee) // buy_price)) if buy_price > 0 else 0
+# ==================== 股數自動最大化 (包含手續費屏障) ====================
+max_quantity = 0
+if buy_price > 0:
+    # 反推：預算需大於 (股價 * 股數) + 預估手續費
+    # 簡化公式計算最大可買股數
+    cost_per_share = buy_price + (0.003 if is_moomoo else 0.0) + (buy_price * 0.0003 if is_moomoo else 0.0)
+    base_fee = 0.99 if is_moomoo else 1.0
+    if total_budget > base_fee:
+        max_quantity = int((total_budget - base_fee) // cost_per_share)
+        max_quantity = max(0, max_quantity)
 
 with col5:
     quantity = st.number_input(trans[lang]["quantity_label"], min_value=0, value=max_quantity, step=1)
 
-# ==================== 實行數據 ====================
-real_capital = buy_price * quantity + platform_fee + (commission_rate * buy_price * quantity if commission_rate > 0 else 0)
+# ==================== 實行數據 (UI 區塊) ====================
+entry_fee = calculate_estimated_fee(buy_price, quantity, is_moomoo)
+raw_capital = buy_price * quantity
+real_capital = raw_capital + entry_fee # 總投入包含買入手續費
 remaining = total_budget - real_capital
 
 if quantity > 0:
@@ -238,9 +258,11 @@ if quantity > 0:
     st.markdown(f"""
     ### {trans[lang]["execution_title"]}
     <div class="execution-data">
-    💰 投入： ${real_capital:.2f} USD (約 RM {rm_value:.2f})<br>
-    📈 購買 ： {quantity} 股 {ticker}。<br>
-    💵 剩餘資金: ${remaining:.2f} USD
+    📊 買入市值： <b>${raw_capital:.2f} USD</b> <br>
+    💸 預估手續費 (Fee)： <span style="color:#FF4B4B;"><b>${entry_fee:.2f} USD</b></span> <br>
+    🛡️ 總投入成本： <b>${real_capital:.2f} USD</b> (約 RM {rm_value:.2f})<br>
+    📈 最終購買： <b>{quantity} 股</b> {ticker}<br>
+    💵 剩餘資金： <b>${remaining:.2f} USD</b>
     </div>
     """, unsafe_allow_html=True)
 elif total_budget > 0:
@@ -276,41 +298,53 @@ st.divider()
 def format_price(price, cents_mode):
     return f"${price:.4f}" if cents_mode else f"${price:.2f}"
 
-# ==================== 獲利 / 停損劇本 ====================
+# ==================== 獲利 / 停損劇本 (雙向扣費核算) ====================
 if quantity > 0:
     st.markdown(f"### 📈 {ticker} {trans[lang]['take_profit_header']}")
     p_col1, p_col2, p_col3 = st.columns(3)
     
+    # 方案 A
     pct_a = max(1.0, target_profit_pct - 3.0)
     price_a = max(0.01, buy_price * (1 + pct_a / 100))
-    profit_a = (price_a * quantity) - real_capital - (platform_fee + commission_rate * price_a * quantity if commission_rate > 0 else 0)
+    exit_fee_a = calculate_estimated_fee(price_a, quantity, is_moomoo)
+    profit_a = (price_a * quantity) - real_capital - exit_fee_a # 賣出市值 - 總投入成本 - 賣出手續費
     p_col1.success(f"**{trans[lang]['scheme_a']} (+{pct_a:.1f}%)**\n\n{trans[lang]['target_price']}: **{format_price(price_a, cents_mode)}**\n\n{trans[lang]['net_profit']}: **${profit_a:.2f}**\n\n(約 RM {profit_a * st.session_state.exchange_rate:.0f})")
 
+    # 方案 B
     pct_b = target_profit_pct
     price_b = max(0.01, buy_price * (1 + pct_b / 100))
-    profit_b = (price_b * quantity) - real_capital - (platform_fee + commission_rate * price_b * quantity if commission_rate > 0 else 0)
+    exit_fee_b = calculate_estimated_fee(price_b, quantity, is_moomoo)
+    profit_b = (price_b * quantity) - real_capital - exit_fee_b
     p_col2.warning(f"**{trans[lang]['scheme_b']} (+{pct_b:.1f}%)**\n\n{trans[lang]['target_price']}: **{format_price(price_b, cents_mode)}**\n\n{trans[lang]['net_profit']}: **${profit_b:.2f}**\n\n(約 RM {profit_b * st.session_state.exchange_rate:.0f})")
 
+    # 方案 C
     pct_c = target_profit_pct + 3.0
     price_c = max(0.01, buy_price * (1 + pct_c / 100))
-    profit_c = (price_c * quantity) - real_capital - (platform_fee + commission_rate * price_c * quantity if commission_rate > 0 else 0)
+    exit_fee_c = calculate_estimated_fee(price_c, quantity, is_moomoo)
+    profit_c = (price_c * quantity) - real_capital - exit_fee_c
     p_col3.success(f"**{trans[lang]['scheme_c']} (+{pct_c:.1f}%)**\n\n{trans[lang]['target_price']}: **{format_price(price_c, cents_mode)}**\n\n{trans[lang]['net_profit']}: **${profit_c:.2f}**\n\n(約 RM {profit_c * st.session_state.exchange_rate:.0f})")
 
     st.markdown(f"### 📉 {ticker} {trans[lang]['stop_loss_header']}")
     s_col1, s_col2, s_col3 = st.columns(3)
     
+    # 停損 A
     sl_a = max(0.5, base_stop_loss_pct - 0.5)
     sl_price_a = max(0.01, buy_price * (1 - sl_a / 100))
-    sl_loss_a = (sl_price_a * quantity) - real_capital - (platform_fee + commission_rate * sl_price_a * quantity if commission_rate > 0 else 0)
+    sl_exit_fee_a = calculate_estimated_fee(sl_price_a, quantity, is_moomoo)
+    sl_loss_a = (sl_price_a * quantity) - real_capital - sl_exit_fee_a
     s_col1.error(f"**{trans[lang]['stop_a']} (-{sl_a:.1f}%)**\n\n{trans[lang]['trigger_price']}: **{format_price(sl_price_a, cents_mode)}**\n\n{trans[lang]['net_loss']}: **${sl_loss_a:.2f}**\n\n(約 RM {sl_loss_a * st.session_state.exchange_rate:.0f})")
 
+    # 停損 B
     sl_price_b = max(0.01, buy_price * (1 - base_stop_loss_pct / 100))
-    sl_loss_b = (sl_price_b * quantity) - real_capital - (platform_fee + commission_rate * sl_price_b * quantity if commission_rate > 0 else 0)
+    sl_exit_fee_b = calculate_estimated_fee(sl_price_b, quantity, is_moomoo)
+    sl_loss_b = (sl_price_b * quantity) - real_capital - sl_exit_fee_b
     s_col2.error(f"**{trans[lang]['stop_b']} (-{base_stop_loss_pct:.1f}%)**\n\n{trans[lang]['trigger_price']}: **{format_price(sl_price_b, cents_mode)}**\n\n{trans[lang]['net_loss']}: **${sl_loss_b:.2f}**\n\n(約 RM {sl_loss_b * st.session_state.exchange_rate:.0f})")
 
+    # 停損 C
     sl_c = base_stop_loss_pct + 0.5
     sl_price_c = max(0.01, buy_price * (1 - sl_c / 100))
-    sl_loss_c = (sl_price_c * quantity) - real_capital - (platform_fee + commission_rate * sl_price_c * quantity if commission_rate > 0 else 0)
+    sl_exit_fee_c = calculate_estimated_fee(sl_price_c, quantity, is_moomoo)
+    sl_loss_c = (sl_price_c * quantity) - real_capital - sl_exit_fee_c
     s_col3.error(f"**{trans[lang]['stop_c']} (-{sl_c:.1f}%)**\n\n{trans[lang]['trigger_price']}: **{format_price(sl_price_c, cents_mode)}**\n\n{trans[lang]['net_loss']}: **${sl_loss_c:.2f}**\n\n(約 RM {sl_loss_c * st.session_state.exchange_rate:.0f})")
 
     st.markdown("---")
