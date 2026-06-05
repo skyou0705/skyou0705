@@ -127,13 +127,52 @@ trans = {
 
 lang = st.session_state.language
 
-# ==================== CSS (修復標題黃色與字體大小) ====================
+# ==================== 核心 CSS (UI 深度優化) ====================
 st.markdown("""
 <style>
     /* 移除過度刺眼的漸層黃色，縮小字體，改為機構冷灰白，僅保留簡潔感 */
     .big-title { font-size: 1.8rem !important; font-weight: 600; color: #E2E8F0; text-align: center; margin-bottom: 0.3rem; letter-spacing: 1px; }
     .execution-data { font-size: 1.05rem !important; line-height: 1.8; background-color: #1E2127; padding: 15px; border-radius: 8px; border-left: 4px solid #FFD700; margin-top: 10px;}
     .stApp { background-color: #0E1117; }
+
+    /* ================= 滑桿 (Slider) 高端 3D 與刻度化優化 ================= */
+    
+    /* 1. 隱藏預設的紅線填充 (將軌道內部填充設為透明，切斷紅色牽連線) */
+    div[data-baseweb="slider"] > div > div > div {
+        background-color: transparent !important;
+    }
+
+    /* 2. 設計軌道為一長一短的分段線 (儀表板刻度尺造型) */
+    div[data-baseweb="slider"] > div > div {
+        background: 
+            repeating-linear-gradient(to right, #777 0, #777 2px, transparent 2px, transparent 10%), /* 長刻度 */
+            repeating-linear-gradient(to right, #444 0, #444 1px, transparent 1px, transparent 2.5%); /* 短刻度 */
+        background-size: 100% 16px, 100% 8px; /* 設定一長一短的視覺高度 */
+        background-position: center center;
+        background-repeat: no-repeat;
+        background-color: transparent !important;
+        height: 16px !important;
+        border-radius: 0 !important;
+    }
+
+    /* 3. 將圓形點改為 3D 短柄推桿造型 (立體紅色) */
+    div[data-baseweb="slider"] [role="slider"] {
+        width: 16px !important;
+        height: 28px !important; /* 一短的立體長方形 */
+        border-radius: 4px !important; /* 微圓角矩形 */
+        background: linear-gradient(180deg, #ff5555 0%, #a80000 100%) !important; /* 3D 紅色漸層 */
+        box-shadow: 
+            inset 0px 2px 2px rgba(255,255,255,0.4), /* 頂部金屬高光 */
+            inset 0px -2px 2px rgba(0,0,0,0.5),      /* 底部暗角陰影 */
+            0px 4px 6px rgba(0,0,0,0.8) !important;  /* 整體立體投射陰影 */
+        border: 1px solid #750000 !important;
+        cursor: grab !important;
+    }
+    
+    div[data-baseweb="slider"] [role="slider"]:active {
+        cursor: grabbing !important;
+        background: linear-gradient(180deg, #d43b3b 0%, #8a0000 100%) !important; /* 點擊時顏色加深 */
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -203,12 +242,11 @@ total_budget = st.session_state.usd_budget
 def calculate_estimated_fee(price, qty, is_moo):
     if qty <= 0 or price <= 0: return 0.0
     if is_moo:
-        # Moomoo: 平台費($0.99) + 結算費($0.003 * 股數) + 佣金(約0.0003*金額，有些帳戶免收但預留容錯)
         platform_f = 0.99
         settlement_f = 0.003 * qty
         commission_f = 0.0003 * price * qty
         return platform_f + settlement_f + commission_f
-    return 1.0 # 手動平台的預設摩擦成本
+    return 1.0 
 
 # ==================== 股價抓取 ====================
 current_price = 0.00
@@ -236,8 +274,6 @@ with col4:
 # ==================== 股數自動最大化 (包含手續費屏障) ====================
 max_quantity = 0
 if buy_price > 0:
-    # 反推：預算需大於 (股價 * 股數) + 預估手續費
-    # 簡化公式計算最大可買股數
     cost_per_share = buy_price + (0.003 if is_moomoo else 0.0) + (buy_price * 0.0003 if is_moomoo else 0.0)
     base_fee = 0.99 if is_moomoo else 1.0
     if total_budget > base_fee:
@@ -250,7 +286,7 @@ with col5:
 # ==================== 實行數據 (UI 區塊) ====================
 entry_fee = calculate_estimated_fee(buy_price, quantity, is_moomoo)
 raw_capital = buy_price * quantity
-real_capital = raw_capital + entry_fee # 總投入包含買入手續費
+real_capital = raw_capital + entry_fee 
 remaining = total_budget - real_capital
 
 if quantity > 0:
@@ -275,20 +311,14 @@ st.subheader(trans[lang]["percent_title"])
 t_col1, t_col2 = st.columns(2)
 
 with t_col1:
+    # 這裡的 step=1.0 就是您想要的「阻尼卡頓感」，拉動時會嚴格停在 1, 2, 3... 的整數點上
     target_profit_pct = st.slider(trans[lang]["profit_slider"], 1.0, 200.0, 3.0, step=1.0)
-    st.markdown('''
-        <div style="display:flex; justify-content:space-between; font-size:0.78rem; color:#999; margin:-8px 0 12px 0; padding:0 8px;">
-            <div>1%</div><div>20%</div><div>40%</div><div>60%</div><div>80%</div><div>100%</div><div>120%</div><div>140%</div><div>160%</div><div>180%</div><div>200%</div>
-        </div>
-    ''', unsafe_allow_html=True)
+    # （已移除底下無用的百分比刻度 HTML）
 
 with t_col2:
+    # 這裡的 step=0.5 保證了拉動時會卡在 0.5, 1.0, 1.5... 的點位
     base_stop_loss_pct = st.slider(trans[lang]["stoploss_slider"], 0.5, 10.0, 2.0, step=0.5)
-    st.markdown('''
-        <div style="display:flex; justify-content:space-between; font-size:0.78rem; color:#999; margin:-8px 0 12px 0; padding:0 8px;">
-            <div>0.5%</div><div>2%</div><div>4%</div><div>6%</div><div>8%</div><div>10%</div>
-        </div>
-    ''', unsafe_allow_html=True)
+    # （已移除底下無用的百分比刻度 HTML）
 
 cents_mode = st.toggle(trans[lang]["cents_toggle"], value=False, key="cents_mode")
 
@@ -307,7 +337,7 @@ if quantity > 0:
     pct_a = max(1.0, target_profit_pct - 3.0)
     price_a = max(0.01, buy_price * (1 + pct_a / 100))
     exit_fee_a = calculate_estimated_fee(price_a, quantity, is_moomoo)
-    profit_a = (price_a * quantity) - real_capital - exit_fee_a # 賣出市值 - 總投入成本 - 賣出手續費
+    profit_a = (price_a * quantity) - real_capital - exit_fee_a 
     p_col1.success(f"**{trans[lang]['scheme_a']} (+{pct_a:.1f}%)**\n\n{trans[lang]['target_price']}: **{format_price(price_a, cents_mode)}**\n\n{trans[lang]['net_profit']}: **${profit_a:.2f}**\n\n(約 RM {profit_a * st.session_state.exchange_rate:.0f})")
 
     # 方案 B
