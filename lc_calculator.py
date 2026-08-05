@@ -1,17 +1,17 @@
+import datetime
 import streamlit as st
 import yfinance as yf
-import datetime
 
 # ==================== 基本設定 ====================
 st.set_page_config(
     page_title="風險執行計算器",
     page_icon="⚔️",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="collapsed",
 )
 
 # ==================== 多語言 ====================
-if 'language' not in st.session_state:
+if "language" not in st.session_state:
     st.session_state.language = "zh-tw"
 
 trans = {
@@ -49,7 +49,7 @@ trans = {
         "budget_warning": "⚠️ 預算不足以購買 1 股並支付手續費。",
         "quote_time": "⏱️ 報價時間: {}",
         "execution_title": "實行數據：",
-        "disclaimer": "**免責聲明**：本工具僅供參考，淨利/虧損已預扣買賣雙向預估手續費。"
+        "disclaimer": "**免責聲明**：本工具僅供參考，淨利/虧損已預扣買賣雙向預估手續費。",
     },
     "zh-cn": {
         "title": "⚔️ 风险执行计算器",
@@ -85,7 +85,7 @@ trans = {
         "budget_warning": "⚠️ 预算不足以购买 1 股并支付手续费。",
         "quote_time": "⏱️ 报价时间: {}",
         "execution_title": "实行数据：",
-        "disclaimer": "**免责声明**：本工具仅供参考，净利/亏损已预扣买卖双向预估手续费。"
+        "disclaimer": "**免责声明**：本工具仅供参考，净利/亏损已预扣买卖双向预估手续费。",
     },
     "en": {
         "title": "⚔️ Risk Execution Calculator",
@@ -121,33 +121,29 @@ trans = {
         "budget_warning": "⚠️ Budget not enough for 1 share + commission.",
         "quote_time": "⏱️ Quote Time: {}",
         "execution_title": "Execution Data:",
-        "disclaimer": "**Disclaimer**: For reference only. P/L includes 2-way estimated fees."
-    }
+        "disclaimer": "**Disclaimer**: For reference only. P/L includes 2-way estimated fees.",
+    },
 }
 
 lang = st.session_state.language
 
 # ==================== 核心 CSS (UI 深度優化) ====================
-st.markdown("""
+st.markdown(
+    """
 <style>
-    /* 移除過度刺眼的漸層黃色，縮小字體，改為機構冷灰白，僅保留簡潔感 */
     .big-title { font-size: 1.8rem !important; font-weight: 600; color: #E2E8F0; text-align: center; margin-bottom: 0.3rem; letter-spacing: 1px; }
     .execution-data { font-size: 1.05rem !important; line-height: 1.8; background-color: #1E2127; padding: 15px; border-radius: 8px; border-left: 4px solid #FFD700; margin-top: 10px;}
     .stApp { background-color: #0E1117; }
 
-    /* ================= 滑桿 (Slider) 高端 3D 與刻度化優化 ================= */
-    
-    /* 1. 隱藏預設的紅線填充 (將軌道內部填充設為透明，切斷紅色牽連線) */
     div[data-baseweb="slider"] > div > div > div {
         background-color: transparent !important;
     }
 
-    /* 2. 設計軌道為一長一短的分段線 (儀表板刻度尺造型) */
     div[data-baseweb="slider"] > div > div {
         background: 
-            repeating-linear-gradient(to right, #777 0, #777 2px, transparent 2px, transparent 10%), /* 長刻度 */
-            repeating-linear-gradient(to right, #444 0, #444 1px, transparent 1px, transparent 2.5%); /* 短刻度 */
-        background-size: 100% 16px, 100% 8px; /* 設定一長一短的視覺高度 */
+            repeating-linear-gradient(to right, #777 0, #777 2px, transparent 2px, transparent 10%),
+            repeating-linear-gradient(to right, #444 0, #444 1px, transparent 1px, transparent 2.5%);
+        background-size: 100% 16px, 100% 8px;
         background-position: center center;
         background-repeat: no-repeat;
         background-color: transparent !important;
@@ -155,98 +151,180 @@ st.markdown("""
         border-radius: 0 !important;
     }
 
-    /* 3. 將圓形點改為 3D 短柄推桿造型 (立體紅色) */
     div[data-baseweb="slider"] [role="slider"] {
         width: 16px !important;
-        height: 28px !important; /* 一短的立體長方形 */
-        border-radius: 4px !important; /* 微圓角矩形 */
-        background: linear-gradient(180deg, #ff5555 0%, #a80000 100%) !important; /* 3D 紅色漸層 */
+        height: 28px !important;
+        border-radius: 4px !important;
+        background: linear-gradient(180deg, #ff5555 0%, #a80000 100%) !important;
         box-shadow: 
-            inset 0px 2px 2px rgba(255,255,255,0.4), /* 頂部金屬高光 */
-            inset 0px -2px 2px rgba(0,0,0,0.5),      /* 底部暗角陰影 */
-            0px 4px 6px rgba(0,0,0,0.8) !important;  /* 整體立體投射陰影 */
+            inset 0px 2px 2px rgba(255,255,255,0.4),
+            inset 0px -2px 2px rgba(0,0,0,0.5),
+            0px 4px 6px rgba(0,0,0,0.8) !important;
         border: 1px solid #750000 !important;
         cursor: grab !important;
     }
     
     div[data-baseweb="slider"] [role="slider"]:active {
         cursor: grabbing !important;
-        background: linear-gradient(180deg, #d43b3b 0%, #8a0000 100%) !important; /* 點擊時顏色加深 */
+        background: linear-gradient(180deg, #d43b3b 0%, #8a0000 100%) !important;
     }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 # ==================== 右上角語言按鈕 ====================
 header_cols = st.columns([6, 1, 1, 1, 1])
 with header_cols[0]:
-    st.markdown(f'<h1 class="big-title">{trans[lang]["title"]}</h1>', unsafe_allow_html=True)
+    st.markdown(
+        f'<h1 class="big-title">{trans[lang]["title"]}</h1>',
+        unsafe_allow_html=True,
+    )
 with header_cols[2]:
     if st.button("繁", key="btn_zhtw", use_container_width=True):
-        st.session_state.language = "zh-tw"; st.rerun()
+        st.session_state.language = "zh-tw"
+        st.rerun()
 with header_cols[3]:
     if st.button("简", key="btn_zhcn", use_container_width=True):
-        st.session_state.language = "zh-cn"; st.rerun()
+        st.session_state.language = "zh-cn"
+        st.rerun()
 with header_cols[4]:
     if st.button("EN", key="btn_en", use_container_width=True):
-        st.session_state.language = "en"; st.rerun()
+        st.session_state.language = "en"
+        st.rerun()
 
 st.caption(trans[lang]["caption"])
+
 
 # ==================== 匯率、平台、資金 ====================
 @st.cache_data(ttl=3600)
 def get_live_exchange_rate():
     try:
         rate = yf.Ticker("USDMYR=X").fast_info.last_price
-        return round(rate, 4)
+        return round(float(rate), 4)
     except Exception:
         return 3.955
 
+
 live_rate = get_live_exchange_rate()
 
-for k, v in [("usd_budget", 0.0), ("exchange_rate", live_rate), ("myr_budget", 0.0), ("target_ticker", "")]:
+for k, v in [
+    ("usd_budget", 0.0),
+    ("exchange_rate", live_rate),
+    ("myr_budget", 0.0),
+    ("target_ticker", ""),
+]:
     if k not in st.session_state:
         st.session_state[k] = v
 
-def update_myr(): st.session_state.myr_budget = st.session_state.usd_budget * st.session_state.exchange_rate
-def update_usd(): st.session_state.usd_budget = st.session_state.myr_budget / st.session_state.exchange_rate
-def update_rate(): st.session_state.myr_budget = st.session_state.usd_budget * st.session_state.exchange_rate
+
+def update_myr():
+    st.session_state.myr_budget = (
+        st.session_state.usd_budget * st.session_state.exchange_rate
+    )
+
+
+def update_usd():
+    st.session_state.usd_budget = (
+        st.session_state.myr_budget / st.session_state.exchange_rate
+    )
+
+
+def update_rate():
+    st.session_state.myr_budget = (
+        st.session_state.usd_budget * st.session_state.exchange_rate
+    )
+
+
 def sync_quick_pick():
-    if st.session_state.quick_pick != trans["zh-tw"]["manual_input"]:
+    c_lang = st.session_state.language
+    if st.session_state.quick_pick != trans[c_lang]["manual_input"]:
         st.session_state.target_ticker = st.session_state.quick_pick
 
-st.subheader(trans[lang]["funds_title"])
-st.number_input(trans[lang]["exchange_label"] + trans[lang]["system_fetch"].format(live_rate), min_value=3.0, max_value=6.0, step=0.01, key="exchange_rate", on_change=update_rate)
 
-watchlist_base = ["TSLL", "MSFU", "METU", "INTC", "PEP", "SOFI", "CPB", "CAG", "GIS", "NVDL", "AMDL", "AAPU", "LUMN", "ROOT", "HIMS", "KGC"]
+st.subheader(trans[lang]["funds_title"])
+st.number_input(
+    trans[lang]["exchange_label"] + trans[lang]["system_fetch"].format(live_rate),
+    min_value=3.0,
+    max_value=6.0,
+    step=0.01,
+    key="exchange_rate",
+    on_change=update_rate,
+)
+
+watchlist_base = [
+    "TSLL",
+    "MSFU",
+    "METU",
+    "INTC",
+    "PEP",
+    "SOFI",
+    "CPB",
+    "CAG",
+    "GIS",
+    "NVDL",
+    "AMDL",
+    "AAPU",
+    "LUMN",
+    "ROOT",
+    "HIMS",
+    "KGC",
+]
 watchlist = [trans[lang]["manual_input"]] + watchlist_base
-st.selectbox(trans[lang]["watchlist_label"], watchlist, key="quick_pick", on_change=sync_quick_pick)
+st.selectbox(
+    trans[lang]["watchlist_label"],
+    watchlist,
+    key="quick_pick",
+    on_change=sync_quick_pick,
+)
 
 col_platform, _ = st.columns(2)
 with col_platform:
     platform_options = [trans[lang]["moomoo_option"], trans[lang]["manual_input"]]
-    platform = st.selectbox(trans[lang]["platform_label"], platform_options, key="platform")
+    platform = st.selectbox(
+        trans[lang]["platform_label"], platform_options, key="platform"
+    )
 
 is_moomoo = platform == trans[lang]["moomoo_option"]
 
 col1, col2, col3 = st.columns(3)
 with col1:
-    ticker = st.text_input(trans[lang]["ticker_label"], key="target_ticker", value="").upper()
+    ticker = (
+        st.text_input(trans[lang]["ticker_label"], key="target_ticker", value="")
+        .strip()
+        .upper()
+    )
 with col2:
-    st.number_input(trans[lang]["usd_budget_label"], min_value=0.0, step=10.0, key="usd_budget", on_change=update_myr)
+    st.number_input(
+        trans[lang]["usd_budget_label"],
+        min_value=0.0,
+        step=10.0,
+        key="usd_budget",
+        on_change=update_myr,
+    )
 with col3:
-    st.number_input(trans[lang]["myr_budget_label"], min_value=0.0, step=50.0, key="myr_budget", on_change=update_usd)
+    st.number_input(
+        trans[lang]["myr_budget_label"],
+        min_value=0.0,
+        step=50.0,
+        key="myr_budget",
+        on_change=update_usd,
+    )
 
 total_budget = st.session_state.usd_budget
 
+
 # ==================== 手續費動態核算模組 (Fee Calculator) ====================
 def calculate_estimated_fee(price, qty, is_moo):
-    if qty <= 0 or price <= 0: return 0.0
+    if qty <= 0 or price <= 0:
+        return 0.0
     if is_moo:
         platform_f = 0.99
         settlement_f = 0.003 * qty
         commission_f = 0.0003 * price * qty
         return platform_f + settlement_f + commission_f
-    return 1.0 
+    return 1.0
+
 
 # ==================== 股價抓取 ====================
 current_price = 0.00
@@ -254,7 +332,7 @@ fetch_time_str = ""
 if ticker:
     try:
         stock_info = yf.Ticker(ticker)
-        current_price = stock_info.fast_info.last_price
+        current_price = float(stock_info.fast_info.last_price)
         fetch_time_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     except Exception:
         current_price = 0.00
@@ -264,9 +342,9 @@ with col4:
     buy_price = st.number_input(
         trans[lang]["buy_price_label"],
         min_value=0.0,
-        value=0.0,
+        value=current_price if current_price > 0 else 0.0,
         step=0.0001,
-        format="%.4f"
+        format="%.4f",
     )
     if fetch_time_str:
         st.caption(trans[lang]["quote_time"].format(fetch_time_str))
@@ -274,24 +352,31 @@ with col4:
 # ==================== 股數自動最大化 (包含手續費屏障) ====================
 max_quantity = 0
 if buy_price > 0:
-    cost_per_share = buy_price + (0.003 if is_moomoo else 0.0) + (buy_price * 0.0003 if is_moomoo else 0.0)
+    cost_per_share = (
+        buy_price
+        + (0.003 if is_moomoo else 0.0)
+        + (buy_price * 0.0003 if is_moomoo else 0.0)
+    )
     base_fee = 0.99 if is_moomoo else 1.0
     if total_budget > base_fee:
         max_quantity = int((total_budget - base_fee) // cost_per_share)
         max_quantity = max(0, max_quantity)
 
 with col5:
-    quantity = st.number_input(trans[lang]["quantity_label"], min_value=0, value=max_quantity, step=1)
+    quantity = st.number_input(
+        trans[lang]["quantity_label"], min_value=0, value=max_quantity, step=1
+    )
 
 # ==================== 實行數據 (UI 區塊) ====================
 entry_fee = calculate_estimated_fee(buy_price, quantity, is_moomoo)
 raw_capital = buy_price * quantity
-real_capital = raw_capital + entry_fee 
+real_capital = raw_capital + entry_fee
 remaining = total_budget - real_capital
 
 if quantity > 0:
     rm_value = real_capital * st.session_state.exchange_rate
-    st.markdown(f"""
+    st.markdown(
+        f"""
     ### {trans[lang]["execution_title"]}
     <div class="execution-data">
     📊 買入市值： <b>${raw_capital:.2f} USD</b> <br>
@@ -300,7 +385,9 @@ if quantity > 0:
     📈 最終購買： <b>{quantity} 股</b> {ticker}<br>
     💵 剩餘資金： <b>${remaining:.2f} USD</b>
     </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 elif total_budget > 0:
     st.warning(trans[lang]["budget_warning"])
 
@@ -311,71 +398,85 @@ st.subheader(trans[lang]["percent_title"])
 t_col1, t_col2 = st.columns(2)
 
 with t_col1:
-    # 這裡的 step=1.0 就是您想要的「阻尼卡頓感」，拉動時會嚴格停在 1, 2, 3... 的整數點上
-    target_profit_pct = st.slider(trans[lang]["profit_slider"], 1.0, 200.0, 3.0, step=1.0)
-    # （已移除底下無用的百分比刻度 HTML）
+    target_profit_pct = st.slider(
+        trans[lang]["profit_slider"], 1.0, 200.0, 3.0, step=1.0
+    )
 
 with t_col2:
-    # 這裡的 step=0.5 保證了拉動時會卡在 0.5, 1.0, 1.5... 的點位
-    base_stop_loss_pct = st.slider(trans[lang]["stoploss_slider"], 0.5, 10.0, 2.0, step=0.5)
-    # （已移除底下無用的百分比刻度 HTML）
+    base_stop_loss_pct = st.slider(
+        trans[lang]["stoploss_slider"], 0.5, 10.0, 2.0, step=0.5
+    )
 
 cents_mode = st.toggle(trans[lang]["cents_toggle"], value=False, key="cents_mode")
 
 st.divider()
 
+
 # ==================== 價格格式化 ====================
 def format_price(price, cents_mode):
     return f"${price:.4f}" if cents_mode else f"${price:.2f}"
+
 
 # ==================== 獲利 / 停損劇本 (雙向扣費核算) ====================
 if quantity > 0:
     st.markdown(f"### 📈 {ticker} {trans[lang]['take_profit_header']}")
     p_col1, p_col2, p_col3 = st.columns(3)
-    
+
     # 方案 A
     pct_a = max(1.0, target_profit_pct - 3.0)
     price_a = max(0.01, buy_price * (1 + pct_a / 100))
     exit_fee_a = calculate_estimated_fee(price_a, quantity, is_moomoo)
-    profit_a = (price_a * quantity) - real_capital - exit_fee_a 
-    p_col1.success(f"**{trans[lang]['scheme_a']} (+{pct_a:.1f}%)**\n\n{trans[lang]['target_price']}: **{format_price(price_a, cents_mode)}**\n\n{trans[lang]['net_profit']}: **${profit_a:.2f}**\n\n(約 RM {profit_a * st.session_state.exchange_rate:.0f})")
+    profit_a = (price_a * quantity) - real_capital - exit_fee_a
+    p_col1.success(
+        f"**{trans[lang]['scheme_a']} (+{pct_a:.1f}%)**\n\n{trans[lang]['target_price']}: **{format_price(price_a, cents_mode)}**\n\n{trans[lang]['net_profit']}: **${profit_a:.2f}**\n\n(約 RM {profit_a * st.session_state.exchange_rate:.0f})"
+    )
 
     # 方案 B
     pct_b = target_profit_pct
     price_b = max(0.01, buy_price * (1 + pct_b / 100))
     exit_fee_b = calculate_estimated_fee(price_b, quantity, is_moomoo)
     profit_b = (price_b * quantity) - real_capital - exit_fee_b
-    p_col2.warning(f"**{trans[lang]['scheme_b']} (+{pct_b:.1f}%)**\n\n{trans[lang]['target_price']}: **{format_price(price_b, cents_mode)}**\n\n{trans[lang]['net_profit']}: **${profit_b:.2f}**\n\n(約 RM {profit_b * st.session_state.exchange_rate:.0f})")
+    p_col2.warning(
+        f"**{trans[lang]['scheme_b']} (+{pct_b:.1f}%)**\n\n{trans[lang]['target_price']}: **{format_price(price_b, cents_mode)}**\n\n{trans[lang]['net_profit']}: **${profit_b:.2f}**\n\n(約 RM {profit_b * st.session_state.exchange_rate:.0f})"
+    )
 
     # 方案 C
     pct_c = target_profit_pct + 3.0
     price_c = max(0.01, buy_price * (1 + pct_c / 100))
     exit_fee_c = calculate_estimated_fee(price_c, quantity, is_moomoo)
     profit_c = (price_c * quantity) - real_capital - exit_fee_c
-    p_col3.success(f"**{trans[lang]['scheme_c']} (+{pct_c:.1f}%)**\n\n{trans[lang]['target_price']}: **{format_price(price_c, cents_mode)}**\n\n{trans[lang]['net_profit']}: **${profit_c:.2f}**\n\n(約 RM {profit_c * st.session_state.exchange_rate:.0f})")
+    p_col3.success(
+        f"**{trans[lang]['scheme_c']} (+{pct_c:.1f}%)**\n\n{trans[lang]['target_price']}: **{format_price(price_c, cents_mode)}**\n\n{trans[lang]['net_profit']}: **${profit_c:.2f}**\n\n(約 RM {profit_c * st.session_state.exchange_rate:.0f})"
+    )
 
     st.markdown(f"### 📉 {ticker} {trans[lang]['stop_loss_header']}")
     s_col1, s_col2, s_col3 = st.columns(3)
-    
+
     # 停損 A
     sl_a = max(0.5, base_stop_loss_pct - 0.5)
     sl_price_a = max(0.01, buy_price * (1 - sl_a / 100))
     sl_exit_fee_a = calculate_estimated_fee(sl_price_a, quantity, is_moomoo)
     sl_loss_a = (sl_price_a * quantity) - real_capital - sl_exit_fee_a
-    s_col1.error(f"**{trans[lang]['stop_a']} (-{sl_a:.1f}%)**\n\n{trans[lang]['trigger_price']}: **{format_price(sl_price_a, cents_mode)}**\n\n{trans[lang]['net_loss']}: **${sl_loss_a:.2f}**\n\n(約 RM {sl_loss_a * st.session_state.exchange_rate:.0f})")
+    s_col1.error(
+        f"**{trans[lang]['stop_a']} (-{sl_a:.1f}%)**\n\n{trans[lang]['trigger_price']}: **{format_price(sl_price_a, cents_mode)}**\n\n{trans[lang]['net_loss']}: **${sl_loss_a:.2f}**\n\n(約 RM {sl_loss_a * st.session_state.exchange_rate:.0f})"
+    )
 
     # 停損 B
     sl_price_b = max(0.01, buy_price * (1 - base_stop_loss_pct / 100))
     sl_exit_fee_b = calculate_estimated_fee(sl_price_b, quantity, is_moomoo)
     sl_loss_b = (sl_price_b * quantity) - real_capital - sl_exit_fee_b
-    s_col2.error(f"**{trans[lang]['stop_b']} (-{base_stop_loss_pct:.1f}%)**\n\n{trans[lang]['trigger_price']}: **{format_price(sl_price_b, cents_mode)}**\n\n{trans[lang]['net_loss']}: **${sl_loss_b:.2f}**\n\n(約 RM {sl_loss_b * st.session_state.exchange_rate:.0f})")
+    s_col2.error(
+        f"**{trans[lang]['stop_b']} (-{base_stop_loss_pct:.1f}%)**\n\n{trans[lang]['trigger_price']}: **{format_price(sl_price_b, cents_mode)}**\n\n{trans[lang]['net_loss']}: **${sl_loss_b:.2f}**\n\n(約 RM {sl_loss_b * st.session_state.exchange_rate:.0f})"
+    )
 
     # 停損 C
     sl_c = base_stop_loss_pct + 0.5
     sl_price_c = max(0.01, buy_price * (1 - sl_c / 100))
     sl_exit_fee_c = calculate_estimated_fee(sl_price_c, quantity, is_moomoo)
     sl_loss_c = (sl_price_c * quantity) - real_capital - sl_exit_fee_c
-    s_col3.error(f"**{trans[lang]['stop_c']} (-{sl_c:.1f}%)**\n\n{trans[lang]['trigger_price']}: **{format_price(sl_price_c, cents_mode)}**\n\n{trans[lang]['net_loss']}: **${sl_loss_c:.2f}**\n\n(約 RM {sl_loss_c * st.session_state.exchange_rate:.0f})")
+    s_col3.error(
+        f"**{trans[lang]['stop_c']} (-{sl_c:.1f}%)**\n\n{trans[lang]['trigger_price']}: **{format_price(sl_price_c, cents_mode)}**\n\n{trans[lang]['net_loss']}: **${sl_loss_c:.2f}**\n\n(約 RM {sl_loss_c * st.session_state.exchange_rate:.0f})"
+    )
 
     st.markdown("---")
     st.caption(trans[lang]["disclaimer"])
